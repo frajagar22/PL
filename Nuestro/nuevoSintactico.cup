@@ -1,0 +1,38 @@
+import java_cup.runtime.*;
+
+terminal coma, abrirLlave,cerrarLlave,mas,menos,multiplicacion,division,modulo,igual,identificador,constlit,definir,abrirParentesis,cerrarParentesis,vacio,entero,flotante,constint,constfloat,puntoyComa,devolver;
+
+non terminal PROGRAM,DEFINES,CTES,PARTES,PART,RESTPART,BLQ,LISTPARAM,TYPE,SENTLIST,SENT,LID,LEXP,EXP,OP,FACTOR;
+
+precedence left multiplicacion;
+precedence left division;
+precedence left modulo;
+precedence left menos;
+precedence left mas;
+
+
+
+PROGRAM ::= DEFINES PARTES;
+DEFINES ::=  definir identificador CTES DEFINES|;
+CTES ::= constint | constfloat | constlit;
+PARTES ::= PART PARTES | PART;
+PART ::= TYPE RESTPART;
+RESTPART ::= identificador abrirParentesis LISTPARAM cerrarParentesis BLQ | identificador abrirParentesis vacio cerrarParentesis BLQ;
+BLQ ::= abrirLlave SENTLIST cerrarLlave;
+LISTPARAM ::= LISTPARAM coma TYPE identificador | TYPE identificador;
+TYPE ::= vacio | entero | flotante;
+SENTLIST ::= SENTLIST SENT | SENT;
+SENT ::= TYPE LID puntoyComa | identificador igual EXP puntoyComa | identificador abrirParentesis LEXP cerrarParentesis puntoyComa
+| identificador abrirParentesis cerrarParentesis puntoyComa | devolver EXP puntoyComa;
+LID ::= identificador | LID coma identificador;
+LEXP ::= EXP | LEXP coma EXP;
+EXP ::= EXP OP EXP | FACTOR;
+OP ::= multiplicacion | division | modulo| mas | menos;
+FACTOR ::= identificador abrirParentesis LEXP cerrarParentesis | identificador abrirParentesis cerrarParentesis
+| abrirParentesis EXP cerrarParentesis | identificador | CTES;
+
+
+
+
+
+

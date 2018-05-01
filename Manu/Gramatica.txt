@@ -1,0 +1,28 @@
+DOCUMENT::= PROGRAM
+PROGRAM::=PART PROGRAM
+PART::=TYPE RESTPART|struct ident { LFIELD } ;
+LFIELD::= LFIEDL TYPE LID ;
+ID::= ident| ident . ident | ident LDIM | error
+LDIM::= LDIM [ constint ]| [ constinc ]
+RESTPART::= ident ( LISTPARAM ) BLQ
+BLQ::= { SENTLIST }
+LISTPARAM::= LISTPARAM , TYPE ident | TYPE ident
+TYPE::= void| int |float
+SENTLIST::= SENTLIST SENT | SENT
+SENT::= TYPE LID ; | ID = EXP ;
+	| ident ( EXP ) ; | return EXP ;
+	| IF ( LCOND ) THEN BLQ ELSE BLQ
+	| FOR( ident = EXP ; LCOND ; ident = EXP ) BLQ
+	| WHILE( LCOND ) BLQ
+	| DO BLQ UNTIL ( LCOND )
+	|BLQ
+LCOND::= LCOND OPL LCOND | COND |not COND
+OPL::= or | and
+COND::= EXP OPR EXP
+OPR::= ==| < | >|  >= | <= | error
+LID::= ID | LID , ident
+LEXP::= EXP | LEXP , EXP 
+EXP::= EXP OP EXP | FACTOR
+OP::= + | - | * | / | %
+FACTOR::= ident ( LEXP )| ( EXP )| ID
+	|constint | constfloat |constlit

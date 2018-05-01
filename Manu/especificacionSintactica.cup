@@ -1,0 +1,604 @@
+package PracticaObligatoria;
+import java_cup.runtime.*;
+import java.util.ArrayList;
+import java.io.FileWriter;
+import java.io.PrintWriter;
+
+parser code {:
+    Lexer s;
+    parser(Lexer s){ 
+    	this.s=s; 
+    }
+    @Override
+	public void syntax_error(Symbol st){
+	    Token t=(Token)st.value;
+	    report_error("Error Sintáctico: \nRESULT: "+ t.toString()+", \nCOLUMNA: "+t.getX()+", \nLINEA: "+t.getY()+".\n", null);
+	}
+:}
+
+scan with {: 
+	return s.next_token(); 
+:};
+
+action code
+{:
+
+	public class Ident{
+		private String name;
+		public Ident(String n){
+			this.name = n;
+		}
+		public String getName(){
+			return this.name;
+		}
+	}
+
+	public class Sent{
+		private double identac, identact;
+		private String si = null;
+		private String sino = null; 
+		private String hacer = null;
+		private String hasta = null;
+		private String mientras = null;
+		private Bloque blq1 = null;
+		private Bloque blq2;
+		private String cad;
+		public Sent(String si, Bloque blq1, String sino, Bloque blq2){
+			this.si = si;
+			this.sino = sino;
+			this.blq1 = blq1;
+			this.blq2 = blq2;
+		}
+		public Sent(String hacer, Bloque blq, String hasta){
+			this.hacer = hacer;
+			this.blq1 = blq;
+			this.hasta = hasta;
+		}
+		public Sent(String mientras, Bloque blq){
+			this.mientras = mientras;
+			this.blq1 = blq;
+		}
+		public Sent(Bloque blq){
+			this.blq1 = blq;
+		}
+		public Sent(String blq){
+			this.cad = blq;
+		}
+		public void setIndent(double ind){
+			this.identact = ind;
+			this.identac = ind+0.5;
+		}
+		@Override
+		public String toString(){
+			String res;
+			if(si != null){
+				res = "<div style=\"text-indent: "+identact+"cm\">"+si+"</div>\n";
+				blq1.setIdent(this.identac);
+				res += blq1;
+				res += "<div style=\"text-indent: "+identact+"cm\">"+sino+"</div>\n";
+				blq2.setIdent(this.identac);
+				res += blq2;
+			}else if(hacer != null){
+				res = "<div style=\"text-indent: "+identact+"cm\">"+hacer+"</div>\n";
+				blq1.setIdent(this.identac);
+				res+=blq1;
+				res+="<div style=\"text-indent: "+identact+"cm\">"+hasta+"</div>\n";
+			}else if(mientras != null) {
+				res = "<div style=\"text-indent: "+identact+"cm\">"+mientras+"</div>\n";
+				blq1.setIdent(this.identac);
+				res+=blq1;
+			}else if(blq1 != null){
+				blq1.setIdent(this.identac);
+				res = blq1.toString();
+			}else{
+				res = "<div style=\"text-indent: "+identact+"cm\">"+cad+"</div>\n";
+			}
+			return res;
+		} 
+	}
+
+	boolean errorEncontrado = false;
+	String errorMsg = "";
+		public boolean existeReturn(String donde) {
+		    return donde.contains("return");
+	    }
+	
+
+	public class Resultado{
+		private ArrayList<Funcion> value;
+		private ArrayList<Estructura> estr;
+		public Resultado(ArrayList<Funcion> val, ArrayList<Estructura> est){
+			this.value = val;
+			this.estr = est;
+		}
+		public ArrayList<Funcion> getFuncs(){
+			return this.value;
+		}
+		public ArrayList<Estructura> getEstr(){
+			return this.estr;
+		}
+	}
+
+	public class Estructura{
+		String nombre;
+		String campos;
+
+		public Estructura(String nombre, String campos){
+			this.nombre = nombre;
+			this.campos = campos;
+		}
+
+		@Override 
+		public String toString(){
+			return "<code><span class = \"palres\">struct </span><span class=\"ident\"> "+nombre+" </span>\n"+this.campos+"</code>";
+		}
+	}
+
+	public class Program{
+		
+		private String nombre;
+		private ArrayList<Funcion> funciones;
+		private ArrayList<Estructura> structure;
+
+		public Program(Resultado res) {
+            this.funciones = res.getFuncs();
+            this.structure = res.getEstr();
+        }
+
+		public void escribirFicheroHTML(){
+          	FileWriter fichero = null;
+            PrintWriter pw = null;
+            int contador = 0;
+            if(errorEncontrado){
+              	System.err.println(errorMsg);
+            }
+            else{
+            	for (Funcion func:this.funciones) { 
+                	if (func.getCabecera().getNombre().equals("Main"))
+
+                  		contador++;
+      			}
+      			if (contador > 1){
+          			System.err.println("ERROR: Se ha declarado mas de una funcion main");
+      			}else{
+			        try{
+		                fichero = new FileWriter("pruebaSalida.html");
+		                pw = new PrintWriter(fichero);
+		                pw.write(this.toString());
+			        }catch (Exception e) {
+	                    e.printStackTrace();
+			        }finally {
+	                   	try {
+	                    	if (null != fichero)
+			                    fichero.close();
+			            }catch (Exception e2) {
+			                e2.printStackTrace();
+			            }
+			        }
+      			}
+      		}
+      	}
+
+
+
+		@Override
+		public String toString(){
+
+			String principio = "<A NAME = \"inicio\">\n<H2>Funciones</H2>\n<UL>";
+			String codigo = "";
+			String codigoMain = "";
+			String finales = "";
+			
+			for (Funcion func:this.funciones) { 
+				if(func.esMain()){
+					principio+= "<LI><A HREF=\"#" +func.getCabecera().getNombre()+ "\">" +func.getCabecera().toString()+ "</A></LI>\n";
+					codigoMain+="<hr/>";
+                	codigoMain+=func.toString()+"\n";
+				}else{
+					principio+= "<LI><A HREF=\"#" +func.getCabecera().getNombre()+ "\">" +func.getCabecera().toString()+ "</A></LI>\n";
+                	codigo+="<hr/>";
+                	codigo+=func.toString()+"\n";	
+				}
+                
+			}
+
+			for (Estructura est: this.structure) {
+				finales+="<hr/>";
+				finales+=est.toString()+"\n";
+			}
+			principio+="</UL>";
+			String cabecera = "<HTML>\n<head>\n<title></title>\n<style>\n"+
+								".cte {color:rgb(19,189,72);}\n"+
+								".ident {color:rgb(55,40,244);}\n"+
+								".palres {color:rgb(0,0,0);font-weight:bold;}\n"+
+								"</style>\n"+
+								"</head>\n";
+			String devuelto = cabecera + "<BODY><H1>Program:</H1>" +principio+codigoMain+codigo+finales+ "</BODY></HTML>";
+			return devuelto;
+		}
+	}
+	public class Cabecera{
+
+		String tipoDevuelto;
+		String nombreDeLaFuncion;
+		String listaDeParametros;
+
+		public Cabecera(String nombreDeLaFuncion, String listaDeParametros){
+			this.nombreDeLaFuncion=nombreDeLaFuncion;
+			this.listaDeParametros=listaDeParametros;
+		}
+		@Override
+		public String toString(){
+			String devuelto = "";
+			devuelto = this.tipoDevuelto +" "+this.nombreDeLaFuncion +"("+this.listaDeParametros+")\n";
+			return devuelto;	
+		}
+		public void anyadirTipo(String t){
+			this.tipoDevuelto=t;
+		}
+		public String getTipo(){
+			return this.tipoDevuelto;
+		}
+		public String getNombre(){
+			return this.nombreDeLaFuncion;
+		}
+		public String getParametros(){
+			return this.listaDeParametros;
+		}
+
+	}
+	public class Funcion{
+
+		private Cabecera cabecera;
+		private String bloque;
+
+		private Boolean esMain = false;
+
+		public Funcion(Cabecera cab, String blq){
+			this.bloque = blq;
+			this.esMain = cab.getNombre().equalsIgnoreCase("main");
+			this.cabecera = cab;
+		}
+		public Cabecera getCabecera(){
+			return this.cabecera;
+		}
+		public String getBlq(){
+			return this.bloque;
+		}
+
+		public boolean esMain(){
+			return this.esMain;
+		}
+		@Override
+		public String toString(){
+			if(this.esMain){
+				return "<code><A NAME = \""+cabecera.getNombre()+"\">"+cabecera.getTipo()+"<span class=\"ident\"> "+cabecera.getNombre()+" </span>"+"("+cabecera.getParametros()+")\n"+this.bloque+"</code>"+
+					"\n<A HREF=\"#"+cabecera.getNombre()+"\">Comienzo del Programa Principal</A></br>\n"+
+					"<A HREF=\"#inicio\">Comienzo de la pagina</A>\n";
+			}
+			else{
+				return "<code><A NAME = \""+cabecera.getNombre()+"\">"+cabecera.getTipo()+"<span class=\"ident\"> "+cabecera.getNombre()+" </span>"+"("+cabecera.getParametros()+")\n"+this.bloque+"</code>"+
+					"\n<A HREF=\"#"+cabecera.getNombre()+"\">Comienzo de la funcion</A></br>\n"+
+					"<A HREF=\"#inicio\">Comienzo de la pagina</A>\n";	
+			}
+			
+		}
+
+	}
+	public class Bloque{
+		private double ident;
+		private ArrayList<Sent> blq;
+		public Bloque(ArrayList<Sent> blq){
+			this.blq = blq;
+		}
+		public void setIdent(double id){
+			this.ident = id;
+		}
+		@Override
+		public String toString(){
+			double sep;
+			if (ident == 0){
+				sep = 0;
+			}else{
+				sep = ident-0.5;
+			}
+			String res = "<div style=\"text-indent: "+(sep)+"cm\">{</div>";
+			for(int i = blq.size()-1; i >= 0; i--){
+				Sent s = blq.get(i);
+				s.setIndent(ident+0.5);
+				res+=s;	
+			}
+			res += "<div style=\"text-indent: "+(sep)+"cm\">{</div>";
+			return res;
+		}
+	}
+:}
+
+
+terminal Token ident, tvoid, tint, tfloat, ret, parOpen, parClose, keyOpen, keyClose, comma, pointComma, equalComp, constint, constfloat, constlit, opSum, opSub, opMul, opDiv, opMod,
+condIf, condThen, condElse, loopFor, loopWhile, loopDo, loopUntil, opNot, opOr, opAnd, equalDouble, less, more, moreEqual, lessEqual, point, matrixOpen, matrixClose, structure;
+
+non terminal String TYPE, LISTPARAM, LID, EXP, LEXP, OP, FACTOR, LFIELD, ID, LDIM, LCOND, OPL, COND, OPR;
+non terminal Sent SENT;
+non terminal Bloque BLQ;
+non terminal ArrayList<Sent> SENTLIST;
+non terminal Resultado PROGRAM, PART, RESTPART, DOCUMENT;
+precedence left opSum, opSub, opMul, opDiv, opMod, opOr, opAnd;
+
+//------------------------------------------------------------------
+
+DOCUMENT ::= PROGRAM:pr {:
+			Program tds = new Program(pr);
+			tds.escribirFicheroHTML();
+		:};
+
+PROGRAM ::= PART:valPart PROGRAM:valProgram {:
+			ArrayList<Funcion> list= new ArrayList<>();
+			ArrayList<Estructura> estr= new ArrayList<>();
+			list.addAll(valPart.getFuncs());
+			list.addAll(valProgram.getFuncs());
+			estr.addAll(valPart.getEstr());
+			estr.addAll(valProgram.getEstr());
+			Resultado res = new Resultado(list, estr);
+			RESULT = res; 
+		:}
+	| PART:valPart {:
+			RESULT = valPart;
+		:};
+
+
+PART ::= TYPE:valType RESTPART:valRESTPART{:
+			Funcion fn = valRESTPART.getFuncs().get(0);
+			Cabecera c = fn.getCabecera();
+			String blq = fn.getBlq();
+			c.anyadirTipo(valType.toString());
+			if(!valType.equals("<span class=\"palres\"> void </span>")){
+				if(existeReturn(blq)){
+					Funcion newfn = new Funcion(c, blq);
+					ArrayList<Funcion> arr = new ArrayList<>();
+					arr.add(newfn);
+					Resultado res = new Resultado(arr, new ArrayList<Estructura>());
+					RESULT = res;
+				}else{
+					errorEncontrado = true;
+					errorMsg ="Error :No se ha encontrado return para la función "+c.getNombre();
+					RESULT = new Resultado(new ArrayList<Funcion>(), new ArrayList<Estructura>());
+            	}
+			}else{
+				ArrayList<Funcion> arr = new ArrayList<>();
+				Funcion newfn = new Funcion(c, blq);
+        		arr.add(newfn);
+        		Resultado res = new Resultado(arr, new ArrayList<Estructura>());
+        		RESULT = res;
+			}
+		:}
+	| structure ident:id keyOpen LFIELD:lf keyClose pointComma{:
+	      	String campos = "\n</br>{"+lf+"\n}</br>";
+	      	Estructura e = new Estructura(id.toString(), campos);
+	      	ArrayList<Estructura> arr = new ArrayList<Estructura>();
+	      	arr.add(e);
+	      	RESULT = new Resultado(new ArrayList<Funcion>(), arr);
+    	:};
+
+
+LFIELD ::= LFIELD:lf TYPE:t LID:li pointComma {:
+		    RESULT = lf + "<div style=\"text-indent: 0.5cm\">"+t + li + ";</div>";
+	    :}
+	| TYPE:t LID:li pointComma {:
+	      	RESULT = "<div style=\"text-indent: 0.5cm\"> "+t + li + "; </div>";
+	    :};
+
+
+ID ::= ident:valIdent {:
+			RESULT = "<span class=\"ident\"> " + valIdent + "</span>\n";
+		:} 
+	| ident:valIdent1 point ident:valIdent2 {:
+			RESULT = "<span class=\"ident\"> " + valIdent1 + "</span>\n" + "." + "<span class=\"ident\">" + valIdent2 + "</span>\n";
+		:}
+	| ident:valIdent LDIM:ld {:
+			RESULT = "<span class=\"ident\"> " + valIdent + "</span>\n" + " " + ld;
+		:}
+	| error {:
+			System.err.println("ERROR DE IDENTIFICADOR");
+		:};
+
+
+LDIM ::= LDIM:ld matrixOpen constint:ci matrixClose {:
+      		RESULT = ld + "[" + "<span class=\"cte\">" + ci + "</span>" + "]";
+    	:}
+  	| matrixOpen constint:ci matrixClose {:
+      		RESULT = "[" + "<span class=\"cte\">" + ci + "</span>" + "]";
+    	:};
+
+
+RESTPART ::= ident:valIdent parOpen LISTPARAM:valListParam parClose BLQ:valBLQ{:
+			Cabecera cab = new Cabecera(valIdent.toString(), valListParam.toString());
+			valBLQ.setIdent(0);
+			Funcion fun = new Funcion(cab, valBLQ.toString());
+			ArrayList<Funcion> arr = new ArrayList<>();
+			arr.add(fun);
+			Resultado res = new Resultado(arr, new ArrayList<Estructura>());
+			RESULT = res;
+		:};
+
+
+BLQ ::= keyOpen SENTLIST:valSentList keyClose{:
+			Bloque blq = new Bloque(valSentList);
+			RESULT = blq;
+		:};
+
+
+LISTPARAM ::= LISTPARAM:valListParam comma TYPE:valType ident:valIdent{:
+			RESULT = valListParam + " ," + valType + "<span class=\"ident\"> " + valIdent + "</span>\n";
+		:}
+	| TYPE:valType ident:valIdent{:
+			RESULT = valType + "<span class=\"ident\"> " + valIdent +"</span>\n";
+		:};
+
+
+TYPE ::= tvoid:type{:
+			RESULT = "<span class=\"palres\"> " + type + " </span>";
+		:}
+	|tint:type{:
+			RESULT = "<span class=\"palres\"> " + type + " </span>";
+		:}
+	|tfloat:type{:
+			RESULT = "<span class=\"palres\"> " + type + " </span>";
+		:}
+	| error {:
+			System.err.println("ERROR DE TIPE");
+		:};
+
+
+SENTLIST ::= SENTLIST:valSentList SENT:valSent {:
+			ArrayList<Sent> arr = new ArrayList<>();
+			arr.add(valSent);
+			arr.addAll(valSentList);
+			RESULT = arr;
+		:} 
+	| SENT:valSent{:
+			ArrayList<Sent> arr = new ArrayList<>();
+			arr.add(valSent);
+			RESULT = arr;
+		:};
+
+
+SENT ::= TYPE:t LID:li pointComma {:
+			RESULT = new Sent(t + " " + li + ";" + "\n"); 
+		:} 
+	| ID:id equalComp EXP:val pointComma {:
+			RESULT = new Sent("<span class=\"ident\"> " + id + "</span> = " + val + ";" + "\n");
+		:} 
+	| ident:ide parOpen LEXP:le parClose pointComma {:
+			RESULT = new Sent("<span class=\"ident\"> " + ide + "</span>" + "(" + le + ")" + ";" + "\n");
+		:} 
+	| ret EXP:val pointComma {:
+			RESULT = new Sent("<span class=\"palres\">return </span> " + val + ";" + "\n"); 
+		:}
+	| condIf:ci parOpen LCOND:lc parClose condThen:ct BLQ:b1 condElse:ce BLQ:b2 {:
+			String condif =  "<span class=\"palres\">"+ci + "</span>(" + lc + ")" + ct+"";
+			String condelse =  "<span class=\"palres\">"+ce+"</span>" ;
+			RESULT = new Sent(condif, b1, condelse, b2);
+		:}
+	| loopFor:lf parOpen ident:valIdent1 equalComp:ec1 EXP:e1 pointComma LCOND:lc pointComma ident:valIdent2 equalComp:ec2 EXP:e2 parClose BLQ:b {:
+			String para =  "<span class=\"palres\">"+lf + "</span>(" + "<span class=\"ident\"> " + valIdent1 +"</span>\n" + " " + ec1 + " " + e1 + ";" + " " + lc + ";" + "<span class=\"ident\"> " + valIdent2 +"</span>\n" + " " + ec2 + " " + e2 + ")"; 
+			RESULT = new Sent(para, b);
+		:}
+	| loopWhile:lw parOpen LCOND:lc parClose BLQ:b {:
+			String mientras = "<span class=\"palres\">"+lw + "</span>(" + lc + ")";
+			RESULT = new Sent(mientras, b);
+		:}
+
+	| loopDo:ld BLQ:b loopUntil:lu parOpen LCOND:lc parClose {:
+      		String hacer = "<span class=\"palres\">" + ld + "</span>\n";
+      		String hasta= "<span class=\"palres\">"+lu + "</span>"  + " (" + lc + ")" + "\n"; 
+      		RESULT = new Sent(hacer, b, hasta);
+    	:}
+	| BLQ:b {:
+			RESULT = new Sent(b);
+		:};
+
+
+LCOND ::= LCOND:lc1 OPL:op LCOND:lc2 {:
+			RESULT = lc1 + " " + op + " " + lc2;
+		:}
+	| COND:c {:
+			RESULT = c; 
+		:}
+	| opNot:opN COND:c {:
+			RESULT = " "+"<span class=\"palres\"> " + opN + " </span>\n" + c; 
+		:};
+
+
+OPL ::= opOr:opO {:
+			RESULT = "<span class=\"palres\"> " + opO + " </span>\n"; 
+		:} 
+	| opAnd:opA {:
+			RESULT = "<span class=\"palres\"> " + opA + " </span>\n";
+		:};
+
+
+COND ::= EXP:val1 OPR:op EXP:val2 {:
+			RESULT =val1 + " " + op + " " + val2;
+		:};
+
+
+OPR::= equalDouble:eq {:
+			RESULT = " "+eq; 
+		:} 
+	| less:l {:
+			RESULT = " "+l;
+		:}
+	| more:m {:
+			RESULT = " "+m;
+		:}
+	| moreEqual:me {:
+			RESULT = " "+me;
+		:} 
+	| lessEqual:le {:
+			RESULT = " "+le;
+		:}
+	| error {:
+			System.err.println("ERROR DE IOPERADOR LOGICO");
+		:};  
+
+
+LID ::= ID:id {: 
+			RESULT = id;
+		:} 
+	| LID:li comma ident:id {:
+			RESULT = li + ", <span class=\"ident\"> " + id + "</span>\n";
+		:};
+
+
+LEXP ::= EXP:val {:
+			RESULT = val;
+		:} 
+	| LEXP:le comma EXP:val {:
+			RESULT = le + " ," + val;
+		:};
+
+
+EXP ::= EXP:val1 OP:opVal EXP:val2 {:
+			RESULT = val1 + " " + opVal + " " + val2;
+		:}
+	| FACTOR:f {:
+			RESULT = f;
+		:};
+
+
+OP ::= opSum:opS1 {:
+			RESULT = opS1.toString();
+		:} 
+	| opSub:opS2 {: 
+			RESULT = opS2.toString();
+		:}
+	| opMul:opMu {: 
+			RESULT = opMu.toString();
+		:} 
+	| opDiv:opD {: 
+			RESULT = opD.toString();
+		:} 
+	| opMod:opMo {: 
+			RESULT = opMo.toString();
+		:};
+
+
+FACTOR ::= ident:id parOpen LEXP:le parClose {:
+			RESULT =  "<span class=\"ident\"> " + id + " </span>" + "(" + le + ")"; 
+		:} 
+	| parOpen EXP:expr parClose {: 
+			RESULT = "(" + expr + ")";
+		:} 
+	| ID:id {:
+			RESULT = id; 
+		:} 
+	| constint:ci {: 
+			RESULT = "<span class=\"cte\"> " + ci + " </span>"; 
+		:} 
+	| constfloat:cf {: 
+			RESULT = "<span class=\"cte\"> " + cf + " </span>"; 
+		:} 
+	| constlit:cl {: 
+			RESULT = "<span class=\"cte\"> " + cl + " </span>";
+		:};
