@@ -24,12 +24,64 @@ TYPE ::= vacio | entero | flotante;
 SENTLIST ::= SENTLIST SENT | SENT;
 SENT ::= TYPE LID puntoyComa | identificador igual EXP puntoyComa | identificador abrirParentesis LEXP cerrarParentesis puntoyComa
 | identificador abrirParentesis cerrarParentesis puntoyComa | devolver EXP puntoyComa;
-LID ::= identificador | LID coma identificador;
-LEXP ::= EXP | LEXP coma EXP;
-EXP ::= EXP OP EXP | FACTOR;
-OP ::= multiplicacion | division | modulo| mas | menos;
-FACTOR ::= identificador abrirParentesis LEXP cerrarParentesis | identificador abrirParentesis cerrarParentesis
-| abrirParentesis EXP cerrarParentesis | identificador | CTES;
+
+
+LID ::= identificador:id {:
+			CONJUNTO = id;
+		:} 
+	| LID:lid coma identificador:id {:
+			CONJUNTO = lid + ", " + id;
+		:};
+
+
+LEXP ::= EXP:exp {:
+			CONJUNTO = exp;
+		:} 
+ 	| LEXP:lexp coma EXP:exp {:
+			CONJUNTO = lexp + "," + exp;
+		:};
+
+
+EXP ::= EXP:exp1 OP:op EXP:exp2 {:
+			CONJUNTO = exp1 + " " + op + " " exp2;
+		:}
+	| FACTOR:factor {:
+			CONJUNTO = factor;
+		:};
+
+
+OP ::= multiplicacion:mul {:
+			CONJUNTO = mul.toString();
+		:}
+	| division:div{:
+			CONJUNTO = div.toString();
+		:} 
+	| modulo:mod{:
+			CONJUNTO = mod.toString();
+		:}
+	| mas:suma {:
+			CONJUNTO = suma.toString();
+		:}
+	| menos:resta {:
+			CONJUNTO = resta.toString();
+		:};
+
+
+FACTOR ::= identificador abrirParentesis LEXP:lexp cerrarParentesis {:
+			CONJUNTO= id + "(" + lexp + ")";
+		:}
+	| identificador:id abrirParentesis cerrarParentesis {:
+			CONJUNTO = id + "()";
+		:}		
+	| abrirParentesis EXP:exp cerrarParentesis {:
+			CONJUNTO = "(" + exp + ")";
+		:}
+	| identificador:id {:
+			CONJUNTO = id;
+		:}
+	| CTES:cte :{
+			CONJUNTO = cte;
+		:};
 
 
 
