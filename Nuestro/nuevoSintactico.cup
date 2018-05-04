@@ -13,28 +13,71 @@ precedence left mas;
 
 
 PROGRAM ::= DEFINES PARTES;
+
+
 DEFINES ::=  definir identificador CTES DEFINES|;
+
+
 CTES ::= constint | constfloat | constlit;
+
+
 PARTES ::= PART PARTES | PART;
+
+
 PART ::= TYPE RESTPART;
-RESTPART ::= identificador abrirParentesis LISTPARAM cerrarParentesis BLQ | identificador abrirParentesis vacio cerrarParentesis BLQ;
-BLQ ::= abrirLlave SENTLIST cerrarLlave;
-LISTPARAM ::= LISTPARAM coma TYPE identificador | TYPE identificador;
-TYPE ::= vacio | entero | flotante;
-SENTLIST ::= SENTLIST SENT | SENT;
+
+
+RESTPART ::= identificador abrirParentesis LISTPARAM cerrarParentesis BLQ {:
+			
+		:}
+| identificador abrirParentesis vacio cerrarParentesis BLQ {:
+
+		:};
+
+
+BLQ ::= abrirLlave SENTLIST:sentlist cerrarLlave {:
+			CONJUNTO = "begin"+ "\n" + sentlist + "end" + "\n" ;
+		:} ;
+
+
+LISTPARAM ::= LISTPARAM:listparam coma TYPE:type identificador:id {:
+			CONJUNTO = listparam + id + ": " + type + "\n";
+		:}
+	| TYPE:type identificador:id {:
+			CONJUNTO = id + ": " + type + "\n" ;
+		:} ;
+
+
+TYPE ::= vacio {:
+			CONJUNTO = " ";
+		:}
+	| entero {:
+			CONJUNTO = "INTEGER";
+		:}
+	| flotante {:
+			CONJUNTO = "FLOAT";
+		:};
+
+
+SENTLIST ::= SENTLIST:sentlist SENT:sent {:
+			CONJUNTO = sentlist + sent;
+		:}
+	| SENT:sent {:
+			CONJUNTO = sent;
+		:};
 
 
 SENT ::= TYPE:type LID:lid puntoyComa {:
-			CONJUNTO = new Sent(type + " " + li + ";" + "\n");
+			l = l + " : " + type + ";" + "\n"; 
 		:}
 	| identificador:id igual EXP:exp puntoyComa {:
-			CONJUNTO = new Sent(id + "=" + exp + ";");
+			CONJUNTO = id + ":= " + exp + ";";
 		:}
 	| identificador:id abrirParentesis LEXP:lexp cerrarParentesis puntoyComa {:
-			CONJUNTO = new Sent(id + "(" + lexp + ")" + ";" + "\n");
+			CONJUNTO = id + "(" + lexp ")" + ";" + "\n";
 		:}
 	| identificador:id abrirParentesis cerrarParentesis puntoyComa {:
-			CONJUNTO = new Sent(id + "();");
+			CONJUNTO = id + "(" + ")" + ";" + "\n";
 		:}
 	| devolver EXP puntoyComa {:
 
@@ -66,7 +109,7 @@ EXP ::= EXP:exp1 OP:op EXP:exp2 {:
 
 
 OP ::= multiplicacion:mul {:
-			CONJUNTO = mul.toString();
+			CONJUNTO = "*";
 		:}
 	| division:div{:
 			CONJUNTO = "/";
@@ -75,10 +118,10 @@ OP ::= multiplicacion:mul {:
 			CONJUNTO = "%";
 		:}
 	| mas:suma {:
-			CONJUNTO = suma.toString();
+			CONJUNTO = "+";
 		:}
 	| menos:resta {:
-			CONJUNTO = resta.toString();
+			CONJUNTO = "-";
 		:};
 
 
