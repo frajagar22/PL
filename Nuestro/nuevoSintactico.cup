@@ -1,8 +1,15 @@
 import java_cup.runtime.*;
 
+action code{:
+	String l="";
+	String h="";
+	String retornar;
+	:}
+
 terminal coma, abrirLlave,cerrarLlave,mas,menos,multiplicacion,division,modulo,igual,identificador,constlit,definir,abrirParentesis,cerrarParentesis,vacio,entero,flotante,constint,constfloat,puntoyComa,devolver;
 
 non terminal PROGRAM,DEFINES,CTES,PARTES,PART,RESTPART,BLQ,LISTPARAM,TYPE,SENTLIST,SENT,LID,LEXP,EXP,OP,FACTOR;
+
 
 precedence left multiplicacion;
 precedence left division;
@@ -12,27 +19,60 @@ precedence left mas;
 
 
 
-PROGRAM ::= DEFINES PARTES;
+PROGRAM ::= DEFINES:defines PARTES:partes {:
+			CONJUNTO = "program" + "main" + ";" + "\n" + defines + "\n" + partes;
+		:} ;
 
 
-DEFINES ::=  definir identificador CTES DEFINES|;
-
-
-CTES ::= constint | constfloat | constlit;
-
-
-PARTES ::= PART PARTES | PART;
-
-
-PART ::= TYPE RESTPART;
-
-
-RESTPART ::= identificador abrirParentesis LISTPARAM cerrarParentesis BLQ {:
-			
+DEFINES ::=  definir identificador:id CTES:ctes DEFINES:defines {:
+			CONJUNTO = "const " + "\n" + "\t" + id + "=" + ctes + ";" + "\n" + defines;
 		:}
-| identificador abrirParentesis vacio cerrarParentesis BLQ {:
+	|;
+	
 
+CTES ::= constint {:
+			CONJUNTO = constint;
+		:}
+	| constfloat {:
+			CONJUNTO = constfloat;
+		:}
+	| constlit {:
+			CONJUNTO = conslit;
+		:} ;
+
+
+PARTES ::= PART:part PARTES:partes {:
+				CONJUNTO = part + partes;
+		:}
+	| PART:PART {:
+				CONJUNTO = part + main;
 		:};
+
+
+PART ::= TYPE:type RESTPART:restpart {:
+			if (type=="void"){	
+				CONJUNTO = "procedure " + restpart + ";" + "\n";
+			} else {
+				h= " : " + type;
+				CONJUNTO = "function " + restpart + ";" + "\n";	
+			}
+		:} ;
+
+
+RESTPART ::= identificador:id abrirParentesis LISTPARAM:listparam cerrarParentesis BLQ:blq {:
+			if ( "main" == id){
+				CONJUNTO = "var" + "\n" listaid + "\n" + blq;
+			} else {	
+				CONJUNTO = id + "(" + listparam + ")" + h + "\n" + "var" + "\n" + listaid + "\n" +blq;
+			}
+		:}
+| identificador:id abrirParentesis vacio cerrarParentesis BLQ:blq {:
+			if ( "main" == i){
+				CONJUNTO = "var" + "\n" + listaid + "\n" + blq;
+			} else {
+				CONJUNTO = id + "()" + h +  "\n" + "var" + "\n" + listaid + "\n" + blq;
+			}
+		:} ;
 
 
 BLQ ::= abrirLlave SENTLIST:sentlist cerrarLlave {:
@@ -68,7 +108,7 @@ SENTLIST ::= SENTLIST:sentlist SENT:sent {:
 
 
 SENT ::= TYPE:type LID:lid puntoyComa {:
-			l = l + " : " + type + ";" + "\n"; 
+			l = l + lid + " : " + type + ";" + "\n"; 
 		:}
 	| identificador:id igual EXP:exp puntoyComa {:
 			CONJUNTO = id + ":= " + exp + ";";
@@ -79,8 +119,8 @@ SENT ::= TYPE:type LID:lid puntoyComa {:
 	| identificador:id abrirParentesis cerrarParentesis puntoyComa {:
 			CONJUNTO = id + "(" + ")" + ";" + "\n";
 		:}
-	| devolver EXP puntoyComa {:
-
+	| devolver EXP:exp puntoyComa {:
+			retornar = exp;
 		:};
 
 
@@ -126,23 +166,6 @@ OP ::= multiplicacion:mul {:
 
 
 FACTOR ::= identificador:id abrirParentesis LEXP:lexp cerrarParentesis {:
-			CONJUNTO= id + "(" + lexp + ")";
-		:}
-	| identificador:id abrirParentesis cerrarParentesis {:
-			CONJUNTO = id + "()";
-		:}		
-	| abrirParentesis EXP:exp cerrarParentesis {:
-			CONJUNTO = "(" + exp + ")";
-		:}
-	| identificador:id {:
-			CONJUNTO = id;
-		:}
-	| CTES:cte :{
-			CONJUNTO = cte;
-		:};
-
-
-
 
 
 
